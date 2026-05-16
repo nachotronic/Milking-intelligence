@@ -79,8 +79,13 @@ fetch('vacas_terri.json')
     const mediaLeche = (vacas.reduce((s, v) => s + (v.LecheDiaria || 0), 0) / total).toFixed(1);
 
     if (vacas[0]) {
+      const fmtFecha = f => {
+        if (!f) return '-';
+        const [y, m, d] = f.split('T')[0].split('-');
+        return `${d}-${m}-${y}`;
+      };
       document.getElementById('periodo').textContent =
-        'Período: ' + vacas[0].FechaInicio?.split('T')[0] + ' → ' + vacas[0].FechaFin?.split('T')[0];
+        'Período: ' + fmtFecha(vacas[0].FechaInicio) + ' → ' + fmtFecha(vacas[0].FechaFin);
     }
 
     document.getElementById('kpis').innerHTML = `
