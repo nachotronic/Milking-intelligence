@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vacas — Granja Terri</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f5f5f5; color: #222; padding: 1.5rem; }
+    h1 { font-size: 1.4rem; font-weight: 500; margin-bottom: 0.5rem; }
+    .filtros { display: flex; gap: 8px; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    .btn { padding: 6px 14px; border-radius: 20px; border: 1px solid #ddd; background: white; cursor: pointer; font-size: 13px; }
+    .btn.active { background: #222; color: white; border-color: #222; }
+    .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 1.5rem; }
+    .kpi { background: white; border-radius: 10px; padding: 1rem; border: 1px solid #eee; }
+    .kpi-label { font-size: 11px; color: #888; margin-bottom: 4px; }
+    .kpi-value { font-size: 22px; font-weight: 500; }
+    table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; border: 1px solid #eee; font-size: 13px; }
+    th { background: #f9f9f9; padding: 10px 12px; text-align: left; font-weight: 500; color: #555; font-size: 12px; border-bottom: 1px solid #eee; }
+    td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #fafafa; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 500; }
+    .alta { background: #fee2e2; color: #991b1b; }
+    .media { background: #fef3c7; color: #92400e; }
+    .baja { background: #d1fae5; color: #065f46; }
+    .motivo { font-size: 11px; color: #888; margin-top: 2px; }
+    .search { padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 13px; width: 100%; max-width: 300px; margin-bottom: 1rem; }
+  </style>
+</head>
+<body>
+
+<h1>Granja Terri — Lista de vacas</h1>
+<p id="periodo" style="font-size:12px;color:#888;margin-bottom:1rem"></p>
+
+<div class="kpis" id="kpis"></div>
+
+<input class="search" type="text" id="buscar" placeholder="Buscar por número o nombre...">
+
+<div class="filtros">
+  <button class="btn active" onclick="filtrar('Todas')">Todas</button>
+  <button class="btn" onclick="filtrar('Alta')">Alta prioridad</button>
+  <button class="btn" onclick="filtrar('Media')">Media prioridad</button>
+  <button class="btn" onclick="filtrar('Baja')">Baja prioridad</button>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>Número</th>
+      <th>Nombre</th>
+      <th>Lactación</th>
+      <th>DIM</th>
+      <th>Leche/día</th>
+      <th>Ordeños</th>
+      <th>Kickoffs %</th>
+      <th>Células</th>
+      <th>Prioridad</th>
+    </tr>
+  </thead>
+  <tbody id="tabla"></tbody>
+</table>
+
+<script>
+let vacas = [];
+let filtroActivo = 'Todas';
+
+fetch('vacas_terri.json')
+  .then(r => r.json())
+  .then(data => {
+    vacas = data;
+
+    const total = vacas.length;
+    const alta = vacas.filter(v => v.Prioridad === 'Alta').length;
+    const media = vacas.filter(v => v.Prioridad === 'Media').length;
+    const baja = vacas.filter(v => v.Prioridad === 'Baja').length;
+    const mediaLeche = (vacas.reduce((s, v) => s + (v.LecheDiaria || 0), 0) / total).toFixed(1);
+
+    if (vacas[0]) {
+      document.getElementById('periodo').textContent =
+        'Período: ' + vacas[0].FechaInicio?.split('T')[0] + ' → ' + vacas[0].FechaFin?.split('T')[0];
+    }
+
+    document.getElementById('kpis').innerHTML = `
+      <div class="kpi"><div class="kpi-label">Total vacas</div><div class="kpi-value">${total}</div></div>
+      <div class="kpi"><div class="kpi-label">Alta prioridad</div><div class="kpi-value" style="color:#991b1b">${alta}</div></div>
+      <div class="kpi"><div class="kpi-label">Media prioridad</div><div class="kpi-value" style="color:#92400e">${media}</div></div>
+      <div class="kpi"><div class="kpi-label">Leche media</div><div class="kpi-value">${mediaLeche} kg</div></div>
+    `;
+
+    renderTabla();
+  });
+
+function filtrar(prioridad) {
+  filtroActivo = prioridad;
+  document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  renderTabla();
+}
+
+document.getElementById('buscar').addEventListener('input', renderTabla);
+
+function renderTabla() {
+  const busqueda = document.getElementById('buscar').value.toLowerCase();
+  let datos = vacas;
+
+  if (filtroActivo !== 'Todas') datos = datos.filter(v => v.Prioridad === filtroActivo);
+  if (busqueda) datos = datos.filter(v =>
+    String(v.Numero).includes(busqueda) ||
+    (v.Nombre || '').toLowerCase().includes(busqueda)
+  );
+
+  document.getElementById('tabla').innerHTML = datos.map(v => `
+    <tr>
+      <td><strong>${v.Numero || '-'}</strong></td>
+      <td>
+        ${v.Nombre || '-'}
+        ${v.Motivo ? '<div class="motivo">' + v.Motivo + '</div>' : ''}
+      </td>
+      <td>${v.NumLactacion || '-'}</td>
+      <td>${v.DiasEnLeche || '-'}</td>
+      <td>${v.LecheDiaria || '-'} kg</td>
+      <td>${v.OrdenosDiariosMedia || '-'}</td>
+      <td>${v.PctKickoffs || '-'}%</td>
+      <td>${v.CelulasMedia || '-'}</td>
+      <td><span class="badge ${(v.Prioridad||'').toLowerCase()}">${v.Prioridad || '-'}</span></td>
+    </tr>
+  `).join('');
+}
+</script>
+</body>
+</html>
