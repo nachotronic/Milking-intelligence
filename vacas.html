@@ -56,7 +56,6 @@
       <th>Ordeños</th>
       <th>Kickoffs %</th>
       <th>Incomp. %</th>
-      <th>Células</th>
       <th>Score robot</th>
       <th>Prioridad</th>
     </tr>
@@ -126,8 +125,7 @@ function renderTabla() {
       <td>${v.LecheDesviada > 0 ? '<span style="color:#991b1b">'+v.LecheDesviada+' kg</span>' : '-'}</td>
       <td>${v.OrdenosDiariosMedia || '-'}</td>
       <td>${v.PctKickoffs || '-'}%</td>
-      <td>${v.PctIncompletos || '-'}%</td>
-      <td>${v.CelulasMedia || '-'}</td>
+      <td>${v.PctIncompletos !== null && v.PctIncompletos !== undefined ? v.PctIncompletos + '%' : '-'}</td>
       <td>${v.DelProPlusRank || '-'}</td>
       <td><span class="badge ${(v.Prioridad||'').toLowerCase()}">${v.Prioridad || '-'}</span></td>
     </tr>
