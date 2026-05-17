@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Robots — Granja Terri</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f5f5f5; color: #222; padding: 1.2rem; max-width: 480px; margin: 0 auto; }
+    h1 { font-size: 1.2rem; font-weight: 500; margin-bottom: 2px; }
+    .sub { font-size: 12px; color: #888; margin-bottom: 1rem; }
+    .filter-bar { display: flex; gap: 6px; margin-bottom: 1rem; flex-wrap: wrap; }
+    .fbtn { padding: 5px 14px; border-radius: 20px; border: 1px solid #ddd; background: white; font-size: 12px; color: #666; cursor: pointer; }
+    .fbtn.on { background: #222; color: white; border-color: #222; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 1rem; }
+    .kpi { background: #eee; border-radius: 10px; padding: 10px 12px; }
+    .kpi-lbl { font-size: 11px; color: #666; margin-bottom: 3px; }
+    .kpi-val { font-size: 20px; font-weight: 500; }
+    .kpi-sub { font-size: 10px; color: #999; margin-top: 2px; }
+    .card { background: white; border-radius: 12px; border: 1px solid #eee; padding: 14px 16px; margin-bottom: 10px; }
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .card-title { font-size: 13px; font-weight: 500; }
+    .card-sub { font-size: 11px; color: #888; margin-top: 1px; }
+    .score-badge { font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 20px; }
+    .score-a { background: #E1F5EE; color: #085041; }
+    .score-b { background: #FAEEDA; color: #633806; }
+    .score-c { background: #FCEBEB; color: #791F1F; }
+    .row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .row:last-child { margin-bottom: 0; }
+    .row-lbl { font-size: 11px; color: #888; width: 120px; flex-shrink: 0; }
+    .bar-bg { flex: 1; height: 6px; background: #eee; border-radius: 3px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 3px; }
+    .row-val { font-size: 12px; font-weight: 500; width: 60px; text-align: right; flex-shrink: 0; }
+    .divider { height: 1px; background: #f0f0f0; margin: 10px 0; }
+    .time-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    .time-cell { background: #f5f5f5; border-radius: 8px; padding: 8px; text-align: center; }
+    .time-val { font-size: 15px; font-weight: 500; }
+    .time-lbl { font-size: 10px; color: #888; margin-top: 2px; }
+    .donuts-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .donut-card { background: white; border: 1px solid #eee; border-radius: 12px; padding: 12px; }
+    .donut-title { font-size: 12px; font-weight: 500; text-align: center; margin-bottom: 8px; }
+    .donut-wrap { position: relative; width: 100%; height: 120px; }
+    .chart-wrap { position: relative; width: 100%; height: 160px; margin-top: 8px; }
+    .legend { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; justify-content: center; }
+    .leg-item { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #666; }
+    .leg-sq { width: 9px; height: 9px; border-radius: 2px; flex-shrink: 0; }
+    .section-title { font-size: 13px; font-weight: 500; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+
+<h1>Robots VMS — Granja Terri</h1>
+<p class="sub" id="periodo">Cargando...</p>
+
+<div class="filter-bar" id="filters"></div>
+<div class="kpi-grid" id="kpis"></div>
+<div id="robots-list"></div>
+
+<div class="card">
+  <div class="section-title">Distribución del tiempo</div>
+  <div class="legend">
+    <span class="leg-item"><span class="leg-sq" style="background:#1D9E75"></span>Ordeño</span>
+    <span class="leg-item"><span class="leg-sq" style="background:#378ADD"></span>Lavado</span>
+    <span class="leg-item"><span class="leg-sq" style="background:#EF9F27"></span>Libre</span>
+    <span class="leg-item"><span class="leg-sq" style="background:#E24B4A"></span>Avería</span>
+  </div>
+  <div class="donuts-grid" id="donuts-grid"></div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div>
+      <div class="card-title">Litros por día</div>
+      <div class="card-sub">Evolución últimos 30 días</div>
+    </div>
+  </div>
+  <div class="chart-wrap">
+    <canvas id="chartLitros"></canvas>
+  </div>
+</div>
+
+<script>
+const COLORES = ['#1D9E75','#378ADD','#7F77DD'];
+const DONUT_COLORS = ['#1D9E75','#378ADD','#EF9F27','#E24B4A'];
+
+let datos = [];
+let evolucion = {};
+let filtro = 'todos';
+let chartL;
+const donutCharts = {};
+
+function calcTiempos(r) {
+  const box = r.TiempoBoxSeg || 0;
+  const lav = r.TiempoLavadoSeg || 0;
+  const lib = r.TiempoLibreSeg || 0;
+  const ave = r.TiempoAveriaSeg || 0;
+  const total = box + lav + lib + ave;
+  if (total === 0) return { ord: 0, lav: 0, lib: 0, ave: 0 };
+  const ord = Math.round((box - lav) / total * 100);
+  const lavP = Math.round(lav / total * 100);
+  const libP = Math.round(lib / total * 100);
+  const aveP = Math.round(ave / total * 100);
+  return { ord: Math.max(0, ord), lav: lavP, lib: libP, ave: aveP };
+}
+
+function scoreRobot(r) {
+  const inc = r.IncompletosDia || 0;
+  const kick = r.KickoffsDia || 0;
+  if (inc < 2 && kick < 4) return { score: 'A', label: 'Excelente' };
+  if (inc < 4 && kick < 6) return { score: 'B', label: 'Bueno' };
+  return { score: 'C', label: 'Mejorable' };
+}
+
+function fmtFecha(f) {
+  if (!f) return '-';
+  const [y, m, d] = f.split('T')[0].split('-');
+  return `${d}-${m}-${y}`;
+}
+
+fetch('robots_terri.json')
+  .then(r => r.json())
+  .then(d => {
+    datos = d.robots;
+    evolucion = d.evolucion;
+
+    const total = datos.find(r => r.MilkingDevice === null);
+    const robots = datos.filter(r => r.MilkingDevice !== null);
+
+    if (total) {
+      document.getElementById('periodo').textContent =
+        `Período: ${fmtFecha(total.FechaInicio)} → ${fmtFecha(total.FechaFin)}`;
+    }
+
+    window._total = total;
+    window._robots = robots;
+
+    cambiarFiltro('todos');
+  });
+
+function renderFiltros() {
+  const robots = window._robots || [];
+  document.getElementById('filters').innerHTML =
+    [{ key: 'todos', label: 'Todos' }, ...robots.map(r => ({ key: String(r.MilkingDevice), label: r.NombreRobot }))]
+    .map(f => `<button class="fbtn${filtro === f.key ? ' on' : ''}" onclick="cambiarFiltro('${f.key}')">${f.label}</button>`)
+    .join('');
+}
+
+function renderKPIs() {
+  const robots = window._robots || [];
+  const total = window._total;
+  let d;
+  if (filtro === 'todos') {
+    d = total || {};
+  } else {
+    d = robots.find(r => String(r.MilkingDevice) === filtro) || {};
+  }
+
+  document.getElementById('kpis').innerHTML = `
+    <div class="kpi"><div class="kpi-lbl">Litros/día</div><div class="kpi-val">${(d.LitrosDia||0).toLocaleString('es-ES', {maximumFractionDigits:0})}</div><div class="kpi-sub">litros totales</div></div>
+    <div class="kpi"><div class="kpi-lbl">Ordeños/día</div><div class="kpi-val">${Math.round(d.OrdDia||0)}</div><div class="kpi-sub">visitas robot</div></div>
+    <div class="kpi"><div class="kpi-lbl">Tiempo conexión</div><div class="kpi-val">${Math.round(d.TiempoConexion||0)} seg</div><div class="kpi-sub">media por ordeño</div></div>
+    <div class="kpi"><div class="kpi-lbl">Incompletos</div><div class="kpi-val">${(d.IncompletosDia||0).toFixed(1)}%</div><div class="kpi-sub" style="color:${(d.IncompletosDia||0)<2?'#0F6E56':'#854F0B'}">sobre total ordeños</div></div>
+  `;
+}
+
+function renderRobots() {
+  const robots = window._robots || [];
+  const lista = filtro === 'todos' ? robots : robots.filter(r => String(r.MilkingDevice) === filtro);
+  const maxLitros = Math.max(...robots.map(r => r.LitrosDia || 0));
+  const maxOrds = Math.max(...robots.map(r => r.OrdDia || 0));
+
+  document.getElementById('robots-list').innerHTML = lista.map((r, i) => {
+    const sc = scoreRobot(r);
+    const t = calcTiempos(r);
+    return `
+    <div class="card">
+      <div class="card-header">
+        <div><div class="card-title">${r.NombreRobot}</div><div class="card-sub">${Math.round(r.OrdDia||0)} ordeños · ${(r.LitrosDia||0).toLocaleString('es-ES',{maximumFractionDigits:0})} L/día</div></div>
+        <span class="score-badge score-${sc.score.toLowerCase()}">${sc.score} — ${sc.label}</span>
+      </div>
+      <div class="row">
+        <div class="row-lbl">Litros/día</div>
+        <div class="bar-bg"><div class="bar-fill" style="width:${Math.round((r.LitrosDia||0)/maxLitros*100)}%;background:${COLORES[i]}"></div></div>
+        <div class="row-val">${(r.LitrosDia||0).toLocaleString('es-ES',{maximumFractionDigits:0})} L</div>
+      </div>
+      <div class="row">
+        <div class="row-lbl">Ordeños/día</div>
+        <div class="bar-bg"><div class="bar-fill" style="width:${Math.round((r.OrdDia||0)/maxOrds*100)}%;background:${COLORES[i]}"></div></div>
+        <div class="row-val">${Math.round(r.OrdDia||0)}</div>
+      </div>
+      <div class="row">
+        <div class="row-lbl">Kickoffs/día</div>
+        <div class="bar-bg"><div class="bar-fill" style="width:${Math.min(100,Math.round((r.KickoffsDia||0)/10*100))}%;background:${(r.KickoffsDia||0)<4?'#1D9E75':'#EF9F27'}"></div></div>
+        <div class="row-val">${(r.KickoffsDia||0).toFixed(1)}</div>
+      </div>
+      <div class="row">
+        <div class="row-lbl">Incompletos/día</div>
+        <div class="bar-bg"><div class="bar-fill" style="width:${Math.min(100,Math.round((r.IncompletosDia||0)/10*100))}%;background:${(r.IncompletosDia||0)<2?'#1D9E75':'#EF9F27'}"></div></div>
+        <div class="row-val">${(r.IncompletosDia||0).toFixed(1)}%</div>
+      </div>
+      <div class="row">
+        <div class="row-lbl">Tiempo conexión</div>
+        <div class="bar-bg"><div class="bar-fill" style="width:${Math.min(100,Math.round((r.TiempoConexion||0)/200*100))}%;background:${COLORES[i]}"></div></div>
+        <div class="row-val">${Math.round(r.TiempoConexion||0)} seg</div>
+      </div>
+      <div class="divider"></div>
+      <div class="time-grid">
+        <div class="time-cell"><div class="time-val">${t.ord}%</div><div class="time-lbl">Ordeño</div></div>
+        <div class="time-cell"><div class="time-val">${t.lav}%</div><div class="time-lbl">Lavado</div></div>
+        <div class="time-cell"><div class="time-val">${t.lib}%</div><div class="time-lbl">Libre</div></div>
+        <div class="time-cell"><div class="time-val" style="color:${t.ave>3?'#A32D2D':'#222'}">${t.ave}%</div><div class="time-lbl">Avería</div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderDonuts() {
+  const robots = window._robots || [];
+  const lista = filtro === 'todos' ? robots : robots.filter(r => String(r.MilkingDevice) === filtro);
+
+  Object.values(donutCharts).forEach(c => c.destroy());
+  Object.keys(donutCharts).forEach(k => delete donutCharts[k]);
+
+  document.getElementById('donuts-grid').innerHTML = lista.map(r =>
+    `<div class="donut-card">
+      <div class="donut-title">${r.NombreRobot}</div>
+      <div class="donut-wrap"><canvas id="donut-${r.MilkingDevice}"></canvas></div>
+    </div>`
+  ).join('');
+
+  lista.forEach(r => {
+    const t = calcTiempos(r);
+    donutCharts[r.MilkingDevice] = new Chart(document.getElementById(`donut-${r.MilkingDevice}`), {
+      type: 'doughnut',
+      data: {
+        labels: ['Ordeño','Lavado','Libre','Avería'],
+        datasets: [{ data: [t.ord, t.lav, t.lib, t.ave], backgroundColor: DONUT_COLORS, borderWidth: 0, hoverOffset: 4 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, cutout: '65%',
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ctx.label + ': ' + ctx.parsed + '%' } } }
+      }
+    });
+  });
+}
+
+function renderChartLitros() {
+  if (chartL) chartL.destroy();
+  const robots = window._robots || [];
+  const lista = filtro === 'todos' ? robots : robots.filter(r => String(r.MilkingDevice) === filtro);
+
+  const datasets = lista.map((r, i) => {
+    const evol = evolucion[String(r.MilkingDevice)] || { fechas: [], litros: [] };
+    return {
+      label: r.NombreRobot,
+      data: evol.litros,
+      labels: evol.fechas,
+      borderColor: COLORES[i],
+      backgroundColor: 'transparent',
+      borderWidth: 2,
+      pointRadius: 2,
+      tension: 0.3
+    };
+  });
+
+  const fechas = lista.length > 0 ? (evolucion[String(lista[0].MilkingDevice)] || {}).fechas || [] : [];
+  const labels = fechas.map(f => { const [y,m,d] = f.split('-'); return `${d}/${m}`; });
+
+  chartL = new Chart(document.getElementById('chartLitros'), {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: lista.length > 1, position: 'top', labels: { font: { size: 11 }, boxWidth: 10, padding: 8 } } },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 10 }, color: '#888', maxTicksLimit: 10, maxRotation: 0 } },
+        y: { ticks: { font: { size: 11 }, color: '#888', callback: v => v.toLocaleString('es-ES') }, grid: { color: 'rgba(0,0,0,0.05)' } }
+      }
+    }
+  });
+}
+
+function cambiarFiltro(k) {
+  filtro = k;
+  renderFiltros();
+  renderKPIs();
+  renderRobots();
+  renderDonuts();
+  renderChartLitros();
+}
+</script>
+</body>
+</html>
