@@ -126,6 +126,7 @@ fetch('robots_terri.json')
 
     const total = datos.find(r => r.MilkingDevice === null);
     const robots = datos.filter(r => r.MilkingDevice !== null);
+console.log('robots:', robots.length, robots.map(r => r.NombreRobot));
 
     if (total) {
       document.getElementById('periodo').textContent =
