@@ -231,16 +231,26 @@ function renderDonuts() {
 function renderChartLitros() {
   if (chartL) chartL.destroy();
   const robots = window._robots || [];
+  const total = window._total;
   const lista = filtro === 'todos' ? robots : robots.filter(r => String(r.milking_device) === filtro);
 
-  const datasets = lista.map((r, i) => {
-    const key = r.milking_device !== null ? String(r.milking_device) : '0';
-    const evol = evolucion[key] || { fechas: [], litros: [] };
-    return { label: r.nombre_robot, data: evol.litros, borderColor: COLORES[i], backgroundColor: 'transparent', borderWidth: 2, pointRadius: 2, tension: 0.3 };
-  });
+  let datasets;
+  let fechas;
 
-  const primeraKey = lista.length > 0 ? (lista[0].milking_device !== null ? String(lista[0].milking_device) : '0') : null;
-  const fechas = primeraKey && evolucion[primeraKey] ? evolucion[primeraKey].fechas.map(f => { const [y,m,d] = f.split('-'); return `${d}/${m}`; }) : [];
+  if (lista.length === 0 && total) {
+    // Vistahermosa o granja sin robots individuales — usar evolución total
+    const evol = evolucion['0'] || { fechas: [], litros: [] };
+    datasets = [{ label: 'Total', data: evol.litros, borderColor: COLORES[0], backgroundColor: 'transparent', borderWidth: 2, pointRadius: 2, tension: 0.3 }];
+    fechas = evol.fechas.map(f => { const [y,m,d] = f.split('-'); return `${d}/${m}`; });
+  } else {
+    datasets = lista.map((r, i) => {
+      const key = r.milking_device !== null ? String(r.milking_device) : '0';
+      const evol = evolucion[key] || { fechas: [], litros: [] };
+      return { label: r.nombre_robot, data: evol.litros, borderColor: COLORES[i], backgroundColor: 'transparent', borderWidth: 2, pointRadius: 2, tension: 0.3 };
+    });
+    const primeraKey = lista.length > 0 ? (lista[0].milking_device !== null ? String(lista[0].milking_device) : '0') : null;
+    fechas = primeraKey && evolucion[primeraKey] ? evolucion[primeraKey].fechas.map(f => { const [y,m,d] = f.split('-'); return `${d}/${m}`; }) : [];
+  }
 
   chartL = new Chart(document.getElementById('chartLitros'), {
     type: 'line',
