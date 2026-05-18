@@ -58,38 +58,59 @@
 
 <script>
 const API = 'https://milking-intelligence-production.up.railway.app';
-const farm_id = 'vistahermosa';
+let charts = [];
 
-Promise.all([
-  fetch(`${API}/kpis/${farm_id}`).then(r => r.json()),
-  fetch(`${API}/produccion/${farm_id}`).then(r => r.json())
-]).then(([kpis, produccion]) => {
-  document.getElementById('titulo').textContent = 'Granja ' + kpis.name;
-  const k = kpis;
-  document.getElementById('kpis').innerHTML = `
-    <div class="kpi"><div class="kpi-label">Producción media</div><div class="kpi-value">${k.produccion_media} kg</div><div class="kpi-sub">vaca/día</div></div>
-    <div class="kpi"><div class="kpi-label">Ordeños/día</div><div class="kpi-value">${k.ordenos_dia}</div><div class="kpi-sub">media período</div></div>
-    <div class="kpi"><div class="kpi-label">Rechazos/día</div><div class="kpi-value">${k.rechazos_dia}</div><div class="kpi-sub">muy bajo</div></div>
-    <div class="kpi"><div class="kpi-label">Incompletos/día</div><div class="kpi-value">${k.incompletos_dia}</div><div class="kpi-sub">media período</div></div>
-  `;
+function destruirCharts() {
+  charts.forEach(c => c.destroy());
+  charts = [];
+}
 
-  const meses = produccion.mensual.map(r => r.periodo);
-  const valMeses = produccion.mensual.map(r => r.produccion);
-  new Chart(document.getElementById('cMensual'), {
-    type: 'line',
-    data: { labels: meses, datasets: [{ data: valMeses, borderColor: '#1D9E75', backgroundColor: 'rgba(29,158,117,0.08)', borderWidth: 2, pointRadius: 0, tension: 0.3, fill: true }] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { maxTicksLimit: 12, maxRotation: 0 } } } }
+function cargarGranja(farm_id) {
+  destruirCharts();
+  Promise.all([
+    fetch(`${API}/kpis/${farm_id}`).then(r => r.json()),
+    fetch(`${API}/produccion/${farm_id}`).then(r => r.json())
+  ]).then(([kpis, produccion]) => {
+    document.getElementById('titulo').textContent = 'Granja ' + kpis.name;
+    const k = kpis;
+    document.getElementById('kpis').innerHTML = `
+      <div class="kpi"><div class="kpi-label">Producción media</div><div class="kpi-value">${k.produccion_media} kg</div><div class="kpi-sub">vaca/día</div></div>
+      <div class="kpi"><div class="kpi-label">Ordeños/día</div><div class="kpi-value">${k.ordenos_dia}</div><div class="kpi-sub">media período</div></div>
+      <div class="kpi"><div class="kpi-label">Rechazos/día</div><div class="kpi-value">${k.rechazos_dia}</div><div class="kpi-sub">muy bajo</div></div>
+      <div class="kpi"><div class="kpi-label">Incompletos/día</div><div class="kpi-value">${k.incompletos_dia}</div><div class="kpi-sub">media período</div></div>
+    `;
+    const meses = produccion.mensual.map(r => r.periodo);
+    const valMeses = produccion.mensual.map(r => r.produccion);
+    charts.push(new Chart(document.getElementById('cMensual'), {
+      type: 'line',
+      data: { labels: meses, datasets: [{ data: valMeses, borderColor: '#1D9E75', backgroundColor: 'rgba(29,158,117,0.08)', borderWidth: 2, pointRadius: 0, tension: 0.3, fill: true }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { maxTicksLimit: 12, maxRotation: 0 } } } }
+    }));
+    const years = produccion.anual.map(r => r.year);
+    const mkBar = (id, data, color) => charts.push(new Chart(document.getElementById(id), {
+      type: 'bar',
+      data: { labels: years, datasets: [{ data, backgroundColor: color, borderRadius: 4, borderSkipped: false }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+    }));
+    mkBar('cAnual', produccion.anual.map(r => r.produccion), '#1D9E75');
+    mkBar('cOrdenos', produccion.anual.map(r => r.ordenos), '#378ADD');
+    mkBar('cRechazos', produccion.anual.map(r => r.rechazos), '#EF9F27');
   });
+}
 
-  const years = produccion.anual.map(r => r.year);
-  const mkBar = (id, data, color) => new Chart(document.getElementById(id), {
-    type: 'bar',
-    data: { labels: years, datasets: [{ data, backgroundColor: color, borderRadius: 4, borderSkipped: false }] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+// Cargar lista de granjas y crear selector
+fetch(`${API}/granjas`).then(r => r.json()).then(granjas => {
+  const select = document.createElement('select');
+  select.style.cssText = 'margin-left:16px;padding:4px 8px;border-radius:6px;border:1px solid #ccc;font-size:14px;cursor:pointer';
+  granjas.forEach(g => {
+    const opt = document.createElement('option');
+    opt.value = g.farm_id;
+    opt.textContent = g.name;
+    select.appendChild(opt);
   });
-  mkBar('cAnual', produccion.anual.map(r => r.produccion), '#1D9E75');
-  mkBar('cOrdenos', produccion.anual.map(r => r.ordenos), '#378ADD');
-  mkBar('cRechazos', produccion.anual.map(r => r.rechazos), '#EF9F27');
+  select.addEventListener('change', e => cargarGranja(e.target.value));
+  document.getElementById('titulo').after(select);
+  cargarGranja(granjas[0].farm_id);
 });
 </script>
 </body>
