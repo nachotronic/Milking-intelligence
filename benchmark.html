@@ -374,7 +374,7 @@ fetch(`${API}/benchmark`).then(r => r.json()).then(granjas => {
         <div class="dim-icon" style="background:${d.bg}">${d.icon}</div>
         <div class="dim-title">${d.titulo}</div>
       </div>
-      ${d.sinDatos
+      ${(!d.filas || d.sinDatos)
         ? `<div class="dim-sin-datos">Datos insuficientes — disponible con más granjas</div>`
         : `<div class="dim-rows">${d.filas.map(f => `
           <div class="dim-row">
