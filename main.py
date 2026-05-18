@@ -152,17 +152,50 @@ def robots_evolucion(farm_id: str):
 @app.get("/benchmark")
 def benchmark():
     """
-    Comparativa de producción media entre todas las granjas activas.
-    Base del sistema de puntuación 0-100.
+    Benchmark completo entre granjas activas.
+    Incluye scores por dimensión y puntuación global 0-100.
     """
     rows = query("""
-        SELECT f.farm_id, f.name,
-               k.produccion_media, k.ordenos_dia,
-               k.rechazos_dia, k.incompletos_dia,
-               PERCENT_RANK() OVER (ORDER BY k.produccion_media) * 100 AS percentil_produccion
-        FROM farms f
-        JOIN farm_kpis k ON f.farm_id = k.farm_id
-        WHERE f.active = TRUE
-        ORDER BY k.produccion_media DESC
+        WITH base AS (
+            SELECT f.farm_id, f.name,
+                   k.produccion_media, k.ordenos_dia,
+                   k.rechazos_dia, k.incompletos_dia,
+                   -- Agregados de vacas
+                   AVG(v.pct_kickoffs)        AS kickoffs_media,
+                   AVG(v.pct_incompletos)     AS incompletos_vaca_media,
+                   AVG(v.conductividad_media) AS conductividad_media,
+                   AVG(v.celulas_media)       AS celulas_media,
+                   AVG(v.grasa_media)         AS grasa_media,
+                   AVG(v.proteina_media)      AS proteina_media,
+                   AVG(v.leche_desviada)      AS leche_desviada_media,
+                   AVG(v.adaptibility_score)  AS adaptibility_media,
+                   COUNT(v.id)                AS num_vacas,
+                   COUNT(CASE WHEN v.prioridad = 'Alta' THEN 1 END) AS vacas_alta
+            FROM farms f
+            JOIN farm_kpis k ON f.farm_id = k.farm_id
+            LEFT JOIN vacas v ON f.farm_id = v.farm_id
+            WHERE f.active = TRUE
+            GROUP BY f.farm_id, f.name, k.produccion_media, k.ordenos_dia,
+                     k.rechazos_dia, k.incompletos_dia
+        ),
+        ranks AS (
+            SELECT *,
+                PERCENT_RANK() OVER (ORDER BY produccion_media)  * 100 AS rank_produccion,
+                PERCENT_RANK() OVER (ORDER BY ordenos_dia)       * 100 AS rank_ordenos,
+                PERCENT_RANK() OVER (ORDER BY rechazos_dia DESC) * 100 AS rank_rechazos,
+                PERCENT_RANK() OVER (ORDER BY incompletos_dia DESC) * 100 AS rank_incompletos,
+                PERCENT_RANK() OVER (ORDER BY kickoffs_media DESC NULLS LAST) * 100 AS rank_kickoffs,
+                PERCENT_RANK() OVER (ORDER BY celulas_media DESC NULLS LAST) * 100 AS rank_celulas
+            FROM base
+        )
+        SELECT *,
+            ROUND((rank_produccion * 0.35 +
+                   rank_ordenos * 0.15 +
+                   rank_rechazos * 0.15 +
+                   rank_incompletos * 0.15 +
+                   rank_kickoffs * 0.10 +
+                   rank_celulas * 0.10)::numeric, 1) AS score_global
+        FROM ranks
+        ORDER BY score_global DESC
     """)
     return list(rows)
