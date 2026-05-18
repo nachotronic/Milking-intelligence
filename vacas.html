@@ -3,10 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vacas — Granja Terri</title>
+  <title>Vacas — Milking Intelligence</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: system-ui, sans-serif; background: #f5f5f5; color: #222; padding: 1.5rem; }
+    body { font-family: 'DM Sans', system-ui, sans-serif; background: #f5f5f5; color: #222; }
+
+    nav {
+      background: #FFFFFF; border-bottom: 1px solid #E5E7EB;
+      padding: 0 24px; display: flex; align-items: center; height: 56px; gap: 32px;
+    }
+    .nav-brand { font-family: 'DM Serif Display', serif; font-size: 18px; color: #1A7A4A; text-decoration: none; margin-right: auto; }
+    nav a { font-size: 14px; font-weight: 500; color: #6B7280; text-decoration: none; padding: 4px 0; border-bottom: 2px solid transparent; transition: color 0.2s, border-color 0.2s; }
+    nav a:hover { color: #111827; }
+    nav a.active { color: #1A7A4A; border-bottom-color: #1A7A4A; }
+
+    .page { padding: 1.5rem; }
     h1 { font-size: 1.4rem; font-weight: 500; margin-bottom: 0.5rem; }
     .filtros { display: flex; gap: 8px; margin-bottom: 1.5rem; flex-wrap: wrap; }
     .btn { padding: 6px 14px; border-radius: 20px; border: 1px solid #ddd; background: white; cursor: pointer; font-size: 13px; }
@@ -30,7 +42,16 @@
 </head>
 <body>
 
-<h1>Granja Terri — Lista de vacas</h1>
+<nav>
+  <a class="nav-brand" href="dashboard.html">Milking Intelligence</a>
+  <a href="dashboard.html">Dashboard</a>
+  <a href="vacas.html" class="active">Vacas</a>
+  <a href="robots.html">Robots</a>
+  <a href="benchmark.html">Benchmark</a>
+</nav>
+
+<div class="page">
+<h1>Lista de vacas</h1>
 <p id="periodo" style="font-size:12px;color:#888;margin-bottom:1rem"></p>
 
 <div class="kpis" id="kpis"></div>
@@ -62,6 +83,7 @@
   </thead>
   <tbody id="tabla"></tbody>
 </table>
+</div>
 
 <script>
 const API = 'https://milking-intelligence-production.up.railway.app';
@@ -135,7 +157,6 @@ function renderTabla() {
   `).join('');
 }
 
-// Cargar selector de granjas
 fetch(`${API}/granjas`).then(r => r.json()).then(granjas => {
   const sel = document.createElement('select');
   sel.style.cssText = 'margin-left:12px;padding:4px 8px;border-radius:6px;border:1px solid #ccc;font-size:14px;cursor:pointer';
