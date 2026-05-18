@@ -130,7 +130,7 @@ function cargarRobots(farm_id) {
     // Reconstruir objeto evolucion por milking_device
     evolucion = {};
     evol.forEach(row => {
-      const key = String(row.milking_device ?? 'total');
+      const key = r.milking_device !== null ? String(r.milking_device) : '0';
       if (!evolucion[key]) evolucion[key] = { fechas: [], litros: [] };
       evolucion[key].fechas.push(row.fecha);
       evolucion[key].litros.push(row.litros);
@@ -234,7 +234,7 @@ function renderChartLitros() {
   const lista = filtro === 'todos' ? robots : robots.filter(r => String(r.milking_device) === filtro);
 
   const datasets = lista.map((r, i) => {
-    const key = String(r.milking_device);
+    const key = r.milking_device !== null ? String(r.milking_device) : '0';
     const evol = evolucion[key] || { fechas: [], litros: [] };
     return { label: r.nombre_robot, data: evol.litros, borderColor: COLORES[i], backgroundColor: 'transparent', borderWidth: 2, pointRadius: 2, tension: 0.3 };
   });
