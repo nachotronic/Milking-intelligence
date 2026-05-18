@@ -130,7 +130,7 @@ function cargarRobots(farm_id) {
     // Reconstruir objeto evolucion por milking_device
     evolucion = {};
     evol.forEach(row => {
-      const key = r.milking_device !== null ? String(r.milking_device) : '0';
+      const key = row.milking_device !== null ? String(row.milking_device) : '0';
       if (!evolucion[key]) evolucion[key] = { fechas: [], litros: [] };
       evolucion[key].fechas.push(row.fecha);
       evolucion[key].litros.push(row.litros);
