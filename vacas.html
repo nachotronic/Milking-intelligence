@@ -64,39 +64,39 @@
 </table>
 
 <script>
+const API = 'https://milking-intelligence-production.up.railway.app';
 let vacas = [];
 let filtroActivo = 'Todas';
+let granjaActual = '';
 
-fetch('vacas_terri.json')
-  .then(r => r.json())
-  .then(data => {
-    vacas = data;
-
-    const total = vacas.length;
-    const alta = vacas.filter(v => v.Prioridad === 'Alta').length;
-    const media = vacas.filter(v => v.Prioridad === 'Media').length;
-    const baja = vacas.filter(v => v.Prioridad === 'Baja').length;
-    const mediaLeche = (vacas.reduce((s, v) => s + (v.LecheDiaria || 0), 0) / total).toFixed(1);
-
-    if (vacas[0]) {
+function cargarVacas(farm_id) {
+  granjaActual = farm_id;
+  fetch(`${API}/vacas/${farm_id}`)
+    .then(r => r.json())
+    .then(data => {
+      vacas = data;
+      const total = vacas.length;
+      const alta = vacas.filter(v => v.prioridad === 'Alta').length;
+      const media = vacas.filter(v => v.prioridad === 'Media').length;
+      const mediaLeche = (vacas.reduce((s, v) => s + (v.leche_diaria || 0), 0) / total).toFixed(1);
       const fmtFecha = f => {
         if (!f) return '-';
         const [y, m, d] = f.split('T')[0].split('-');
         return `${d}-${m}-${y}`;
       };
-      document.getElementById('periodo').textContent =
-        'Período: ' + fmtFecha(vacas[0].FechaInicio) + ' → ' + fmtFecha(vacas[0].FechaFin);
-    }
-
-    document.getElementById('kpis').innerHTML = `
-      <div class="kpi"><div class="kpi-label">Total vacas</div><div class="kpi-value">${total}</div></div>
-      <div class="kpi"><div class="kpi-label">Alta prioridad</div><div class="kpi-value" style="color:#991b1b">${alta}</div></div>
-      <div class="kpi"><div class="kpi-label">Media prioridad</div><div class="kpi-value" style="color:#92400e">${media}</div></div>
-      <div class="kpi"><div class="kpi-label">Leche media</div><div class="kpi-value">${mediaLeche} kg</div></div>
-    `;
-
-    renderTabla();
-  });
+      if (vacas[0]) {
+        document.getElementById('periodo').textContent =
+          'Período: ' + fmtFecha(vacas[0].fecha_inicio) + ' → ' + fmtFecha(vacas[0].fecha_fin);
+      }
+      document.getElementById('kpis').innerHTML = `
+        <div class="kpi"><div class="kpi-label">Total vacas</div><div class="kpi-value">${total}</div></div>
+        <div class="kpi"><div class="kpi-label">Alta prioridad</div><div class="kpi-value" style="color:#991b1b">${alta}</div></div>
+        <div class="kpi"><div class="kpi-label">Media prioridad</div><div class="kpi-value" style="color:#92400e">${media}</div></div>
+        <div class="kpi"><div class="kpi-label">Leche media</div><div class="kpi-value">${mediaLeche} kg</div></div>
+      `;
+      renderTabla();
+    });
+}
 
 function filtrar(prioridad) {
   filtroActivo = prioridad;
@@ -110,32 +110,50 @@ document.getElementById('buscar').addEventListener('input', renderTabla);
 function renderTabla() {
   const busqueda = document.getElementById('buscar').value.toLowerCase();
   let datos = vacas;
-
-  if (filtroActivo !== 'Todas') datos = datos.filter(v => v.Prioridad === filtroActivo);
+  if (filtroActivo !== 'Todas') datos = datos.filter(v => v.prioridad === filtroActivo);
   if (busqueda) datos = datos.filter(v =>
-    String(v.Numero).includes(busqueda) ||
-    (v.Nombre || '').toLowerCase().includes(busqueda)
+    String(v.numero).includes(busqueda) ||
+    (v.nombre || '').toLowerCase().includes(busqueda)
   );
-
   document.getElementById('tabla').innerHTML = datos.map(v => `
     <tr>
-      <td><strong>${v.Numero || '-'}</strong></td>
+      <td><strong>${v.numero || '-'}</strong></td>
       <td>
-        ${v.Nombre || '-'}
-        ${v.Motivo ? '<div class="motivo">' + v.Motivo + '</div>' : ''}
+        ${v.nombre || '-'}
+        ${v.motivo ? '<div class="motivo">' + v.motivo + '</div>' : ''}
       </td>
-      <td>${v.NumLactacion || '-'}</td>
-      <td>${v.DiasEnLeche || '-'}</td>
-      <td>${v.LecheDiaria || '-'} kg</td>
-      <td>${v.LecheDesviada > 0 ? '<span style="color:#991b1b">'+v.LecheDesviada+' kg</span>' : '-'}</td>
-      <td>${v.OrdenosDiariosMedia || '-'}</td>
-      <td>${v.PctKickoffs || '-'}%</td>
-      <td>${v.PctIncompletos !== null && v.PctIncompletos !== undefined ? v.PctIncompletos + '%' : '-'}</td>
-      <td>${v.DelProPlusRank || '-'}</td>
-      <td><span class="badge ${(v.Prioridad||'').toLowerCase()}">${v.Prioridad || '-'}</span></td>
+      <td>${v.num_lactacion || '-'}</td>
+      <td>${v.dias_en_leche || '-'}</td>
+      <td>${v.leche_diaria || '-'} kg</td>
+      <td>${v.leche_desviada > 0 ? '<span style="color:#991b1b">'+v.leche_desviada+' kg</span>' : '-'}</td>
+      <td>${v.ordenos_diarios_media || '-'}</td>
+      <td>${v.pct_kickoffs || '-'}%</td>
+      <td>${v.pct_incompletos !== null && v.pct_incompletos !== undefined ? v.pct_incompletos + '%' : '-'}</td>
+      <td>${v.del_pro_plus_rank || '-'}</td>
+      <td><span class="badge ${(v.prioridad||'').toLowerCase()}">${v.prioridad || '-'}</span></td>
     </tr>
   `).join('');
 }
+
+// Cargar selector de granjas
+fetch(`${API}/granjas`).then(r => r.json()).then(granjas => {
+  const sel = document.createElement('select');
+  sel.style.cssText = 'margin-left:12px;padding:4px 8px;border-radius:6px;border:1px solid #ccc;font-size:14px;cursor:pointer';
+  granjas.forEach(g => {
+    const opt = document.createElement('option');
+    opt.value = g.farm_id;
+    opt.textContent = g.name;
+    sel.appendChild(opt);
+  });
+  sel.addEventListener('change', e => {
+    filtroActivo = 'Todas';
+    document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('.btn').classList.add('active');
+    cargarVacas(e.target.value);
+  });
+  document.getElementById('periodo').before(sel);
+  cargarVacas(granjas[0].farm_id);
+});
 </script>
 </body>
 </html>
