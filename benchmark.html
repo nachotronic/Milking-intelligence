@@ -5,261 +5,71 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Benchmark — Milking Intelligence</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <style>
   :root {
-    --verde: #1A7A4A;
+    --verde:       #1A7A4A;
     --verde-light: #E8F5EE;
-    --amber: #D97706;
-    --amber-light: #FEF3C7;
-    --rojo: #DC2626;
-    --rojo-light: #FEE2E2;
-    --gris: #6B7280;
-    --gris-light: #F3F4F6;
-    --negro: #111827;
-    --blanco: #FFFFFF;
-    --borde: #E5E7EB;
+    --amber:       #D97706;
+    --rojo:        #DC2626;
+    --gris:        #6B7280;
+    --gris-light:  #F3F4F6;
+    --negro:       #111827;
+    --blanco:      #FFFFFF;
+    --borde:       #E5E7EB;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: 'DM Sans', sans-serif;
-    background: #F9FAFB;
-    color: var(--negro);
-    min-height: 100vh;
-  }
+  body { font-family: 'DM Sans', sans-serif; background: #F9FAFB; color: var(--negro); min-height: 100vh; }
 
-  /* NAV */
   nav {
-    background: var(--blanco);
-    border-bottom: 1px solid var(--borde);
-    padding: 0 24px;
-    display: flex;
-    align-items: center;
-    height: 56px;
-    gap: 32px;
+    background: var(--blanco); border-bottom: 1px solid var(--borde);
+    padding: 0 24px; display: flex; align-items: center; height: 56px; gap: 32px;
   }
-  .nav-brand {
-    font-family: 'DM Serif Display', serif;
-    font-size: 18px;
-    color: var(--verde);
-    text-decoration: none;
-    margin-right: auto;
-  }
-  nav a {
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--gris);
-    text-decoration: none;
-    padding: 4px 0;
-    border-bottom: 2px solid transparent;
-    transition: color 0.2s, border-color 0.2s;
-  }
+  .nav-brand { font-family: 'DM Serif Display', serif; font-size: 18px; color: var(--verde); text-decoration: none; margin-right: auto; }
+  nav a { font-size: 14px; font-weight: 500; color: var(--gris); text-decoration: none; padding: 4px 0; border-bottom: 2px solid transparent; transition: color 0.2s, border-color 0.2s; }
   nav a:hover { color: var(--negro); }
   nav a.active { color: var(--verde); border-bottom-color: var(--verde); }
 
-  /* HEADER */
-  .header {
-    padding: 40px 24px 24px;
-    max-width: 1100px;
-    margin: 0 auto;
-  }
-  .header h1 {
-    font-family: 'DM Serif Display', serif;
-    font-size: 32px;
-    font-weight: 400;
-    color: var(--negro);
-    margin-bottom: 6px;
-  }
-  .header p {
-    font-size: 15px;
-    color: var(--gris);
-  }
+  .page { max-width: 1100px; margin: 0 auto; padding: 40px 24px 64px; }
+  .page-header { margin-bottom: 32px; }
+  .page-header h1 { font-family: 'DM Serif Display', serif; font-size: 32px; font-weight: 400; margin-bottom: 6px; }
+  .page-header p { font-size: 15px; color: var(--gris); }
 
-  /* SCORE CARDS */
-  .scores {
-    max-width: 1100px;
-    margin: 0 auto 32px;
-    padding: 0 24px;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 16px;
-  }
-  .score-card {
-    background: var(--blanco);
-    border: 1px solid var(--borde);
-    border-radius: 16px;
-    padding: 28px;
-    position: relative;
-    overflow: hidden;
-  }
-  .score-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 4px;
-    background: var(--verde);
-  }
-  .score-card.segundo::before { background: var(--amber); }
-  .score-farm {
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--gris);
-    margin-bottom: 12px;
-  }
-  .score-numero {
-    font-family: 'DM Serif Display', serif;
-    font-size: 72px;
-    line-height: 1;
-    color: var(--verde);
-    margin-bottom: 4px;
-  }
-  .score-card.segundo .score-numero { color: var(--amber); }
-  .score-label {
-    font-size: 13px;
-    color: var(--gris);
-    margin-bottom: 20px;
-  }
-  .score-produccion {
-    font-size: 22px;
-    font-weight: 600;
-    color: var(--negro);
-  }
-  .score-produccion span {
-    font-size: 13px;
-    font-weight: 400;
-    color: var(--gris);
-  }
+  .scores { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 40px; }
+  .score-card { background: var(--blanco); border: 1px solid var(--borde); border-radius: 16px; padding: 28px; position: relative; overflow: hidden; }
+  .score-card::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--verde); }
+  .score-card:not(:first-child)::after { background: var(--amber); }
+  .score-rank { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gris); margin-bottom: 4px; }
+  .score-farm { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
+  .score-num { font-family: 'DM Serif Display', serif; font-size: 64px; line-height: 1; color: var(--verde); }
+  .score-card:not(:first-child) .score-num { color: var(--amber); }
+  .score-sub { font-size: 13px; color: var(--gris); margin-bottom: 20px; }
+  .score-prod { font-size: 20px; font-weight: 600; }
+  .score-prod span { font-size: 13px; font-weight: 400; color: var(--gris); }
 
-  /* DIMENSIONES */
-  .dimensiones {
-    max-width: 1100px;
-    margin: 0 auto 32px;
-    padding: 0 24px;
-  }
-  .dimensiones h2 {
-    font-family: 'DM Serif Display', serif;
-    font-size: 22px;
-    font-weight: 400;
-    margin-bottom: 16px;
-  }
-  .dim-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    gap: 12px;
-  }
-  .dim-card {
-    background: var(--blanco);
-    border: 1px solid var(--borde);
-    border-radius: 12px;
-    padding: 20px;
-  }
-  .dim-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 16px;
-  }
-  .dim-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-  }
-  .dim-title {
-    font-weight: 600;
-    font-size: 15px;
-  }
+  .section-title { font-family: 'DM Serif Display', serif; font-size: 22px; font-weight: 400; margin-bottom: 8px; }
+  .nota { font-size: 12px; color: var(--gris); font-style: italic; margin-bottom: 16px; }
+
+  .dims { display: flex; flex-direction: column; gap: 10px; margin-bottom: 40px; }
+  .dim { background: var(--blanco); border: 1px solid var(--borde); border-radius: 12px; padding: 20px 24px; }
+  .dim-name { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gris); margin-bottom: 14px; }
   .dim-rows { display: flex; flex-direction: column; gap: 10px; }
-  .dim-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  .dim-farm-name {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--gris);
-    width: 100px;
-    flex-shrink: 0;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-  .dim-bar-wrap {
-    flex: 1;
-    height: 8px;
-    background: var(--gris-light);
-    border-radius: 4px;
-    overflow: hidden;
-  }
-  .dim-bar {
-    height: 100%;
-    border-radius: 4px;
-    transition: width 0.8s ease;
-  }
-  .dim-val {
-    font-size: 13px;
-    font-weight: 600;
-    width: 60px;
-    text-align: right;
-    flex-shrink: 0;
-  }
-  .dim-sin-datos {
-    font-size: 13px;
-    color: var(--gris);
-    font-style: italic;
-    padding: 8px 0;
-  }
+  .dim-row { display: flex; align-items: center; gap: 12px; }
+  .dim-label { font-size: 13px; font-weight: 500; width: 120px; flex-shrink: 0; }
+  .dim-track { flex: 1; height: 10px; background: var(--gris-light); border-radius: 5px; position: relative; }
+  .dim-bar { height: 100%; border-radius: 5px; transition: width 0.9s cubic-bezier(0.4,0,0.2,1); }
+  .dim-media-line { position: absolute; top: -5px; width: 2px; height: 20px; background: var(--negro); opacity: 0.25; border-radius: 1px; }
+  .dim-media-label { position: absolute; top: -18px; font-size: 9px; color: var(--gris); transform: translateX(-50%); white-space: nowrap; letter-spacing: 0.05em; }
+  .dim-val { font-size: 13px; font-weight: 600; width: 150px; text-align: right; flex-shrink: 0; }
+  .dim-percentil { font-size: 11px; color: var(--gris); font-weight: 400; margin-left: 4px; }
+  .dim-sin-datos { font-size: 13px; color: var(--gris); font-style: italic; }
 
-  /* TABLA COMPARATIVA */
-  .tabla-wrap {
-    max-width: 1100px;
-    margin: 0 auto 48px;
-    padding: 0 24px;
-  }
-  .tabla-wrap h2 {
-    font-family: 'DM Serif Display', serif;
-    font-size: 22px;
-    font-weight: 400;
-    margin-bottom: 16px;
-  }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    background: var(--blanco);
-    border: 1px solid var(--borde);
-    border-radius: 12px;
-    overflow: hidden;
-  }
-  th {
-    background: var(--gris-light);
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--gris);
-    padding: 12px 16px;
-    text-align: left;
-  }
-  td {
-    padding: 14px 16px;
-    font-size: 14px;
-    border-top: 1px solid var(--borde);
-  }
+  .tabla-wrap { margin-bottom: 40px; }
+  table { width: 100%; border-collapse: collapse; background: var(--blanco); border: 1px solid var(--borde); border-radius: 12px; overflow: hidden; }
+  th { background: var(--gris-light); font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gris); padding: 12px 16px; text-align: left; }
+  td { padding: 14px 16px; font-size: 14px; border-top: 1px solid var(--borde); }
   .mejor { color: var(--verde); font-weight: 600; }
-  .peor { color: var(--rojo); }
-
-  /* LOADING */
-  .loading {
-    text-align: center;
-    padding: 80px;
-    color: var(--gris);
-    font-size: 15px;
-  }
+  .peor   { color: var(--rojo); }
+  .loading { text-align: center; padding: 80px; color: var(--gris); }
 </style>
 </head>
 <body>
@@ -272,163 +82,149 @@
   <a href="benchmark.html" class="active">Benchmark</a>
 </nav>
 
-<div class="header">
-  <h1>Benchmark entre granjas</h1>
-  <p id="subtitulo">Cargando datos...</p>
+<div class="page">
+  <div class="page-header">
+    <h1>Benchmark entre granjas</h1>
+    <p id="subtitulo">Cargando datos...</p>
+  </div>
+  <div id="contenido"><div class="loading">Cargando...</div></div>
 </div>
-
-<div id="contenido"><div class="loading">Cargando benchmark...</div></div>
 
 <script>
 const API = 'https://milking-intelligence-production.up.railway.app';
 
-function color(val, max) {
-  const pct = Math.min(val / max, 1);
-  return pct > 0.6 ? '#1A7A4A' : pct > 0.3 ? '#D97706' : '#DC2626';
+function fmt(v, d = 2) {
+  if (v === null || v === undefined) return '—';
+  return Number(v).toFixed(d);
 }
 
-function fmt(val, decimals = 2) {
-  if (val === null || val === undefined) return '—';
-  return Number(val).toFixed(decimals);
+function barColor(pct) {
+  if (pct >= 66) return '#1A7A4A';
+  if (pct >= 33) return '#D97706';
+  return '#DC2626';
+}
+
+function calcPct(val, vals, inverso) {
+  const validos = vals.filter(v => v !== null && v !== undefined);
+  if (validos.length < 2) return 50;
+  const max = Math.max(...validos);
+  const min = Math.min(...validos);
+  if (max === min) return 50;
+  const pct = ((val - min) / (max - min)) * 100;
+  return inverso ? 100 - pct : pct;
+}
+
+function mediaPct(vals, inverso) {
+  const validos = vals.filter(v => v !== null && v !== undefined);
+  if (!validos.length) return 50;
+  const med = validos.reduce((a, b) => a + b, 0) / validos.length;
+  return calcPct(med, vals, inverso);
+}
+
+function renderDim(titulo, granjas, getVal, inverso, unidad) {
+  const vals = granjas.map(g => getVal(g));
+  const todosNull = vals.every(v => v === null || v === undefined);
+
+  if (todosNull) return `
+    <div class="dim">
+      <div class="dim-name">${titulo}</div>
+      <div class="dim-sin-datos">Datos insuficientes — disponible con más granjas</div>
+    </div>`;
+
+  const medPct = mediaPct(vals, inverso);
+
+  const filas = granjas.map(g => {
+    const val = getVal(g);
+    if (val === null || val === undefined) return `
+      <div class="dim-row">
+        <div class="dim-label">${g.name}</div>
+        <div class="dim-track">
+          <div class="dim-media-line" style="left:${medPct}%"><span class="dim-media-label">media</span></div>
+        </div>
+        <div class="dim-val" style="color:var(--gris)">Sin datos</div>
+      </div>`;
+
+    const pct = calcPct(val, vals, inverso);
+    const col = barColor(pct);
+
+    return `<div class="dim-row">
+      <div class="dim-label">${g.name}</div>
+      <div class="dim-track">
+        <div class="dim-bar" style="width:${pct}%;background:${col}"></div>
+        <div class="dim-media-line" style="left:${medPct}%"><span class="dim-media-label">media</span></div>
+      </div>
+      <div class="dim-val" style="color:${col}">
+        ${fmt(val)} ${unidad}<span class="dim-percentil">p${Math.round(pct)}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  return `<div class="dim">
+    <div class="dim-name">${titulo}</div>
+    <div class="dim-rows">${filas}</div>
+  </div>`;
 }
 
 fetch(`${API}/benchmark`).then(r => r.json()).then(granjas => {
   if (!granjas.length) return;
 
   document.getElementById('subtitulo').textContent =
-    `${granjas.length} granjas comparadas · Actualizado con último sync`;
+    `${granjas.length} granja${granjas.length > 1 ? 's' : ''} en el grupo · La línea vertical marca la media del grupo · p0 = peor · p100 = mejor`;
 
-  const maxScore = Math.max(...granjas.map(g => g.score_global || 0));
-  const maxProd  = Math.max(...granjas.map(g => g.produccion_media || 0));
-  const maxOrd   = Math.max(...granjas.map(g => g.ordenos_dia || 0));
-  const minRech  = Math.min(...granjas.map(g => g.rechazos_dia || 999));
-  const maxRech  = Math.max(...granjas.map(g => g.rechazos_dia || 0));
-  const minInc   = Math.min(...granjas.map(g => g.incompletos_dia || 999));
-  const maxInc   = Math.max(...granjas.map(g => g.incompletos_dia || 0));
-
-  // ── Score cards ──────────────────────────────────────────────────────────
   const scoresHTML = granjas.map((g, i) => `
-    <div class="score-card ${i > 0 ? 'segundo' : ''}">
+    <div class="score-card">
+      <div class="score-rank">${i + 1}ª posición</div>
       <div class="score-farm">${g.name}</div>
-      <div class="score-numero">${fmt(g.score_global, 0)}</div>
-      <div class="score-label">puntuación global / 100</div>
-      <div class="score-produccion">${fmt(g.produccion_media)} kg <span>/ vaca / día</span></div>
-    </div>
-  `).join('');
+      <div class="score-num">${fmt(g.score_global, 0)}</div>
+      <div class="score-sub">puntuación global / 100</div>
+      <div class="score-prod">${fmt(g.produccion_media)} kg <span>/ vaca / día</span></div>
+    </div>`).join('');
 
-  // ── Dimensiones ──────────────────────────────────────────────────────────
-  const dims = [
-    {
-      icon: '🥛', titulo: 'Producción', bg: '#E8F5EE',
-      filas: granjas.map(g => ({
-        name: g.name,
-        val: g.produccion_media,
-        label: `${fmt(g.produccion_media)} kg/vaca/día`,
-        pct: (g.produccion_media / maxProd) * 100,
-        barColor: color(g.produccion_media, maxProd)
-      }))
-    },
-    {
-      icon: '🤖', titulo: 'Robot', bg: '#EAF2FB',
-      filas: granjas.map(g => ({
-        name: g.name,
-        val: g.ordenos_dia,
-        label: `${fmt(g.ordenos_dia)} ordeños/día`,
-        pct: (g.ordenos_dia / maxOrd) * 100,
-        barColor: color(g.ordenos_dia, maxOrd)
-      }))
-    },
-    {
-      icon: '⚠️', titulo: 'Rechazos', bg: '#FEF3C7',
-      filas: granjas.map(g => ({
-        name: g.name,
-        val: g.rechazos_dia,
-        label: `${fmt(g.rechazos_dia)} rechazos/día`,
-        pct: maxRech > 0 ? ((maxRech - g.rechazos_dia) / maxRech) * 100 : 50,
-        barColor: g.rechazos_dia === minRech ? '#1A7A4A' : '#DC2626'
-      }))
-    },
-    {
-      icon: '🔬', titulo: 'Calidad leche', bg: '#F3F4F6',
-      sinDatos: granjas.every(g => !g.celulas_media)
-    },
-    {
-      icon: '💚', titulo: 'Salud vacas', bg: '#F0FDF4',
-      filas: granjas.map(g => ({
-        name: g.name,
-        val: g.kickoffs_media,
-        label: g.kickoffs_media ? `${fmt(g.kickoffs_media)}% kickoffs` : '—',
-        pct: g.kickoffs_media ? Math.max(0, 100 - g.kickoffs_media * 5) : 0,
-        barColor: !g.kickoffs_media ? '#9CA3AF' : g.kickoffs_media < 5 ? '#1A7A4A' : g.kickoffs_media < 10 ? '#D97706' : '#DC2626'
-      }))
-    },
-    {
-      icon: '📊', titulo: 'Bienestar', bg: '#FDF4FF',
-      sinDatos: granjas.every(g => !g.adaptibility_media)
-    }
+  const dimsHTML = [
+    renderDim('Producción', granjas, g => g.produccion_media, false, 'kg/día'),
+    renderDim('Ordeños por vaca y día', granjas, g => g.ordenos_dia, false, 'ord.'),
+    renderDim('Rechazos por día', granjas, g => g.rechazos_dia, true, 'rech.'),
+    renderDim('Incompletos por día', granjas, g => g.incompletos_dia, true, 'inc.'),
+    renderDim('Kickoffs (% ordeños)', granjas, g => g.kickoffs_media, true, '%'),
+    renderDim('Células somáticas', granjas, g => g.celulas_media, true, 'cs'),
+    renderDim('Grasa', granjas, g => g.grasa_media, false, '%'),
+    renderDim('Proteína', granjas, g => g.proteina_media, false, '%'),
+  ].join('');
+
+  const campos = [
+    { label: 'Producción', get: g => g.produccion_media, inv: false },
+    { label: 'Ordeños/día', get: g => g.ordenos_dia, inv: false },
+    { label: 'Rechazos/día', get: g => g.rechazos_dia, inv: true },
+    { label: 'Incompletos/día', get: g => g.incompletos_dia, inv: true },
+    { label: 'Score', get: g => g.score_global, inv: false },
   ];
 
-  const dimsHTML = dims.map(d => `
-    <div class="dim-card">
-      <div class="dim-header">
-        <div class="dim-icon" style="background:${d.bg}">${d.icon}</div>
-        <div class="dim-title">${d.titulo}</div>
-      </div>
-      ${(!d.filas || d.sinDatos)
-        ? `<div class="dim-sin-datos">Datos insuficientes — disponible con más granjas</div>`
-        : `<div class="dim-rows">${d.filas.map(f => `
-          <div class="dim-row">
-            <div class="dim-farm-name">${f.name}</div>
-            <div class="dim-bar-wrap">
-              <div class="dim-bar" style="width:${f.pct}%;background:${f.barColor}"></div>
-            </div>
-            <div class="dim-val" style="color:${f.barColor}">${f.label}</div>
-          </div>`).join('')}
-        </div>`
-      }
-    </div>
-  `).join('');
-
-  // ── Tabla comparativa ────────────────────────────────────────────────────
-  const mejorProd = granjas.reduce((a, b) => a.produccion_media > b.produccion_media ? a : b).farm_id;
-  const mejorOrd  = granjas.reduce((a, b) => a.ordenos_dia > b.ordenos_dia ? a : b).farm_id;
-  const mejorRech = granjas.reduce((a, b) => a.rechazos_dia < b.rechazos_dia ? a : b).farm_id;
-  const mejorInc  = granjas.reduce((a, b) => a.incompletos_dia < b.incompletos_dia ? a : b).farm_id;
+  const mejores = campos.map(c =>
+    granjas.reduce((a, b) =>
+      (c.inv ? c.get(a) < c.get(b) : c.get(a) > c.get(b)) ? a : b
+    ).farm_id
+  );
 
   const tablaRows = granjas.map(g => `
     <tr>
       <td><strong>${g.name}</strong></td>
-      <td class="${g.farm_id === mejorProd ? 'mejor' : 'peor'}">${fmt(g.produccion_media)} kg</td>
-      <td class="${g.farm_id === mejorOrd ? 'mejor' : 'peor'}">${fmt(g.ordenos_dia)}</td>
-      <td class="${g.farm_id === mejorRech ? 'mejor' : 'peor'}">${fmt(g.rechazos_dia)}</td>
-      <td class="${g.farm_id === mejorInc ? 'mejor' : 'peor'}">${fmt(g.incompletos_dia)}</td>
-      <td><strong>${fmt(g.score_global, 0)}</strong></td>
-    </tr>
-  `).join('');
+      ${campos.map((c, i) => `<td class="${mejores[i] === g.farm_id ? 'mejor' : 'peor'}">${fmt(c.get(g))}</td>`).join('')}
+    </tr>`).join('');
 
   document.getElementById('contenido').innerHTML = `
     <div class="scores">${scoresHTML}</div>
 
-    <div class="dimensiones">
-      <h2>Análisis por dimensión</h2>
-      <div class="dim-grid">${dimsHTML}</div>
-    </div>
+    <div class="section-title">Rendimiento por dimensión</div>
+    <p class="nota">La línea vertical indica la media del grupo. Verde = por encima · Rojo = por debajo.</p>
+    <div class="dims">${dimsHTML}</div>
 
     <div class="tabla-wrap">
-      <h2>Comparativa detallada</h2>
+      <div class="section-title">Comparativa detallada</div>
       <table>
-        <thead>
-          <tr>
-            <th>Granja</th>
-            <th>Producción</th>
-            <th>Ordeños/día</th>
-            <th>Rechazos/día</th>
-            <th>Incompletos/día</th>
-            <th>Score global</th>
-          </tr>
-        </thead>
+        <thead><tr><th>Granja</th>${campos.map(c => `<th>${c.label}</th>`).join('')}</tr></thead>
         <tbody>${tablaRows}</tbody>
       </table>
+      <p class="nota" style="margin-top:8px">Verde = mejor del grupo · Rojo = peor del grupo</p>
     </div>
   `;
 });
