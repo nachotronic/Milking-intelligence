@@ -81,6 +81,7 @@
 </div>
 
 <script>
+const API = 'https://milking-intelligence-production.up.railway.app';
 const COLORES = ['#1D9E75','#378ADD','#7F77DD'];
 const DONUT_COLORS = ['#1D9E75','#378ADD','#EF9F27','#E24B4A'];
 
@@ -91,22 +92,23 @@ let chartL;
 const donutCharts = {};
 
 function calcTiempos(r) {
-  const box = r.TiempoBoxSeg || 0;
-  const lav = r.TiempoLavadoSeg || 0;
-  const lib = r.TiempoLibreSeg || 0;
-  const ave = r.TiempoAveriaSeg || 0;
+  const box = r.tiempo_box_seg || 0;
+  const lav = r.tiempo_lavado_seg || 0;
+  const lib = r.tiempo_libre_seg || 0;
+  const ave = r.tiempo_averia_seg || 0;
   const total = box + lav + lib + ave;
   if (total === 0) return { ord: 0, lav: 0, lib: 0, ave: 0 };
-  const ord = Math.round((box - lav) / total * 100);
-  const lavP = Math.round(lav / total * 100);
-  const libP = Math.round(lib / total * 100);
-  const aveP = Math.round(ave / total * 100);
-  return { ord: Math.max(0, ord), lav: lavP, lib: libP, ave: aveP };
+  return {
+    ord: Math.max(0, Math.round((box - lav) / total * 100)),
+    lav: Math.round(lav / total * 100),
+    lib: Math.round(lib / total * 100),
+    ave: Math.round(ave / total * 100)
+  };
 }
 
 function scoreRobot(r) {
-  const inc = r.IncompletosDia || 0;
-  const kick = r.KickoffsDia || 0;
+  const inc = r.incompletos_dia || 0;
+  const kick = r.kickoffs_dia || 0;
   if (inc < 2 && kick < 4) return { score: 'A', label: 'Excelente' };
   if (inc < 4 && kick < 6) return { score: 'B', label: 'Bueno' };
   return { score: 'C', label: 'Mejorable' };
@@ -118,31 +120,42 @@ function fmtFecha(f) {
   return `${d}-${m}-${y}`;
 }
 
-fetch('robots_terri.json')
-  .then(r => r.json())
-  .then(d => {
-    datos = d.robots;
-    evolucion = d.evolucion;
+function cargarRobots(farm_id) {
+  Promise.all([
+    fetch(`${API}/robots/${farm_id}`).then(r => r.json()),
+    fetch(`${API}/robots/${farm_id}/evolucion`).then(r => r.json())
+  ]).then(([robots, evol]) => {
+    datos = robots;
 
-    const total = datos.find(r => r.MilkingDevice === null);
-    const robots = datos.filter(r => r.MilkingDevice !== null);
-console.log('robots:', robots.length, robots.map(r => r.NombreRobot));
+    // Reconstruir objeto evolucion por milking_device
+    evolucion = {};
+    evol.forEach(row => {
+      const key = String(row.milking_device ?? 'total');
+      if (!evolucion[key]) evolucion[key] = { fechas: [], litros: [] };
+      evolucion[key].fechas.push(row.fecha);
+      evolucion[key].litros.push(row.litros);
+    });
+
+    const total = datos.find(r => r.milking_device === null);
+    const robotsList = datos.filter(r => r.milking_device !== null);
 
     if (total) {
       document.getElementById('periodo').textContent =
-        `Período: ${fmtFecha(total.FechaInicio)} → ${fmtFecha(total.FechaFin)}`;
+        `Período: ${fmtFecha(total.fecha_inicio)} → ${fmtFecha(total.fecha_fin)}`;
     }
 
     window._total = total;
-    window._robots = robots;
+    window._robots = robotsList;
 
+    filtro = 'todos';
     cambiarFiltro('todos');
   });
+}
 
 function renderFiltros() {
   const robots = window._robots || [];
   document.getElementById('filters').innerHTML =
-    [{ key: 'todos', label: 'Todos' }, ...robots.map(r => ({ key: String(r.MilkingDevice), label: r.NombreRobot }))]
+    [{ key: 'todos', label: 'Todos' }, ...robots.map(r => ({ key: String(r.milking_device), label: r.nombre_robot }))]
     .map(f => `<button class="fbtn${filtro === f.key ? ' on' : ''}" onclick="cambiarFiltro('${f.key}')">${f.label}</button>`)
     .join('');
 }
@@ -150,26 +163,21 @@ function renderFiltros() {
 function renderKPIs() {
   const robots = window._robots || [];
   const total = window._total;
-  let d;
-  if (filtro === 'todos') {
-    d = total || {};
-  } else {
-    d = robots.find(r => String(r.MilkingDevice) === filtro) || {};
-  }
+  let d = filtro === 'todos' ? (total || {}) : (robots.find(r => String(r.milking_device) === filtro) || {});
 
   document.getElementById('kpis').innerHTML = `
-    <div class="kpi"><div class="kpi-lbl">Litros/día</div><div class="kpi-val">${(d.LitrosDia||0).toLocaleString('es-ES', {maximumFractionDigits:0})}</div><div class="kpi-sub">litros totales</div></div>
-    <div class="kpi"><div class="kpi-lbl">Ordeños/día</div><div class="kpi-val">${Math.round(d.OrdDia||0)}</div><div class="kpi-sub">visitas robot</div></div>
-    <div class="kpi"><div class="kpi-lbl">Tiempo conexión</div><div class="kpi-val">${Math.round(d.TiempoConexion||0)} seg</div><div class="kpi-sub">media por ordeño</div></div>
-    <div class="kpi"><div class="kpi-lbl">Incompletos</div><div class="kpi-val">${(d.IncompletosDia||0).toFixed(1)}%</div><div class="kpi-sub" style="color:${(d.IncompletosDia||0)<2?'#0F6E56':'#854F0B'}">sobre total ordeños</div></div>
+    <div class="kpi"><div class="kpi-lbl">Litros/día</div><div class="kpi-val">${(d.litros_dia||0).toLocaleString('es-ES',{maximumFractionDigits:0})}</div><div class="kpi-sub">litros totales</div></div>
+    <div class="kpi"><div class="kpi-lbl">Ordeños/día</div><div class="kpi-val">${Math.round(d.ord_dia||0)}</div><div class="kpi-sub">visitas robot</div></div>
+    <div class="kpi"><div class="kpi-lbl">Tiempo conexión</div><div class="kpi-val">${Math.round(d.tiempo_conexion||0)} seg</div><div class="kpi-sub">media por ordeño</div></div>
+    <div class="kpi"><div class="kpi-lbl">Incompletos</div><div class="kpi-val">${(d.incompletos_dia||0).toFixed(1)}%</div><div class="kpi-sub" style="color:${(d.incompletos_dia||0)<2?'#0F6E56':'#854F0B'}">sobre total ordeños</div></div>
   `;
 }
 
 function renderRobots() {
   const robots = window._robots || [];
-  const lista = filtro === 'todos' ? robots : robots.filter(r => String(r.MilkingDevice) === filtro);
-  const maxLitros = Math.max(...robots.map(r => r.LitrosDia || 0));
-  const maxOrds = Math.max(...robots.map(r => r.OrdDia || 0));
+  const lista = filtro === 'todos' ? robots : robots.filter(r => String(r.milking_device) === filtro);
+  const maxLitros = Math.max(...robots.map(r => r.litros_dia || 0));
+  const maxOrds = Math.max(...robots.map(r => r.ord_dia || 0));
 
   document.getElementById('robots-list').innerHTML = lista.map((r, i) => {
     const sc = scoreRobot(r);
@@ -177,34 +185,14 @@ function renderRobots() {
     return `
     <div class="card">
       <div class="card-header">
-        <div><div class="card-title">${r.NombreRobot}</div><div class="card-sub">${Math.round(r.OrdDia||0)} ordeños · ${(r.LitrosDia||0).toLocaleString('es-ES',{maximumFractionDigits:0})} L/día</div></div>
+        <div><div class="card-title">${r.nombre_robot}</div><div class="card-sub">${Math.round(r.ord_dia||0)} ordeños · ${(r.litros_dia||0).toLocaleString('es-ES',{maximumFractionDigits:0})} L/día</div></div>
         <span class="score-badge score-${sc.score.toLowerCase()}">${sc.score} — ${sc.label}</span>
       </div>
-      <div class="row">
-        <div class="row-lbl">Litros/día</div>
-        <div class="bar-bg"><div class="bar-fill" style="width:${Math.round((r.LitrosDia||0)/maxLitros*100)}%;background:${COLORES[i]}"></div></div>
-        <div class="row-val">${(r.LitrosDia||0).toLocaleString('es-ES',{maximumFractionDigits:0})} L</div>
-      </div>
-      <div class="row">
-        <div class="row-lbl">Ordeños/día</div>
-        <div class="bar-bg"><div class="bar-fill" style="width:${Math.round((r.OrdDia||0)/maxOrds*100)}%;background:${COLORES[i]}"></div></div>
-        <div class="row-val">${Math.round(r.OrdDia||0)}</div>
-      </div>
-      <div class="row">
-        <div class="row-lbl">Kickoffs/día</div>
-        <div class="bar-bg"><div class="bar-fill" style="width:${Math.min(100,Math.round((r.KickoffsDia||0)/10*100))}%;background:${(r.KickoffsDia||0)<4?'#1D9E75':'#EF9F27'}"></div></div>
-        <div class="row-val">${(r.KickoffsDia||0).toFixed(1)}</div>
-      </div>
-      <div class="row">
-        <div class="row-lbl">Incompletos/día</div>
-        <div class="bar-bg"><div class="bar-fill" style="width:${Math.min(100,Math.round((r.IncompletosDia||0)/10*100))}%;background:${(r.IncompletosDia||0)<2?'#1D9E75':'#EF9F27'}"></div></div>
-        <div class="row-val">${(r.IncompletosDia||0).toFixed(1)}%</div>
-      </div>
-      <div class="row">
-        <div class="row-lbl">Tiempo conexión</div>
-        <div class="bar-bg"><div class="bar-fill" style="width:${Math.min(100,Math.round((r.TiempoConexion||0)/200*100))}%;background:${COLORES[i]}"></div></div>
-        <div class="row-val">${Math.round(r.TiempoConexion||0)} seg</div>
-      </div>
+      <div class="row"><div class="row-lbl">Litros/día</div><div class="bar-bg"><div class="bar-fill" style="width:${Math.round((r.litros_dia||0)/maxLitros*100)}%;background:${COLORES[i]}"></div></div><div class="row-val">${(r.litros_dia||0).toLocaleString('es-ES',{maximumFractionDigits:0})} L</div></div>
+      <div class="row"><div class="row-lbl">Ordeños/día</div><div class="bar-bg"><div class="bar-fill" style="width:${Math.round((r.ord_dia||0)/maxOrds*100)}%;background:${COLORES[i]}"></div></div><div class="row-val">${Math.round(r.ord_dia||0)}</div></div>
+      <div class="row"><div class="row-lbl">Kickoffs/día</div><div class="bar-bg"><div class="bar-fill" style="width:${Math.min(100,Math.round((r.kickoffs_dia||0)/10*100))}%;background:${(r.kickoffs_dia||0)<4?'#1D9E75':'#EF9F27'}"></div></div><div class="row-val">${(r.kickoffs_dia||0).toFixed(1)}</div></div>
+      <div class="row"><div class="row-lbl">Incompletos/día</div><div class="bar-bg"><div class="bar-fill" style="width:${Math.min(100,Math.round((r.incompletos_dia||0)/10*100))}%;background:${(r.incompletos_dia||0)<2?'#1D9E75':'#EF9F27'}"></div></div><div class="row-val">${(r.incompletos_dia||0).toFixed(1)}%</div></div>
+      <div class="row"><div class="row-lbl">Tiempo conexión</div><div class="bar-bg"><div class="bar-fill" style="width:${Math.min(100,Math.round((r.tiempo_conexion||0)/200*100))}%;background:${COLORES[i]}"></div></div><div class="row-val">${Math.round(r.tiempo_conexion||0)} seg</div></div>
       <div class="divider"></div>
       <div class="time-grid">
         <div class="time-cell"><div class="time-val">${t.ord}%</div><div class="time-lbl">Ordeño</div></div>
@@ -218,30 +206,24 @@ function renderRobots() {
 
 function renderDonuts() {
   const robots = window._robots || [];
-  const lista = filtro === 'todos' ? robots : robots.filter(r => String(r.MilkingDevice) === filtro);
+  const lista = filtro === 'todos' ? robots : robots.filter(r => String(r.milking_device) === filtro);
 
   Object.values(donutCharts).forEach(c => c.destroy());
   Object.keys(donutCharts).forEach(k => delete donutCharts[k]);
 
   document.getElementById('donuts-grid').innerHTML = lista.map(r =>
-    `<div class="donut-card">
-      <div class="donut-title">${r.NombreRobot}</div>
-      <div class="donut-wrap"><canvas id="donut-${r.MilkingDevice}"></canvas></div>
-    </div>`
+    `<div class="donut-card"><div class="donut-title">${r.nombre_robot}</div><div class="donut-wrap"><canvas id="donut-${r.milking_device}"></canvas></div></div>`
   ).join('');
 
   lista.forEach(r => {
     const t = calcTiempos(r);
-    donutCharts[r.MilkingDevice] = new Chart(document.getElementById(`donut-${r.MilkingDevice}`), {
+    donutCharts[r.milking_device] = new Chart(document.getElementById(`donut-${r.milking_device}`), {
       type: 'doughnut',
       data: {
         labels: ['Ordeño','Lavado','Libre','Avería'],
         datasets: [{ data: [t.ord, t.lav, t.lib, t.ave], backgroundColor: DONUT_COLORS, borderWidth: 0, hoverOffset: 4 }]
       },
-      options: {
-        responsive: true, maintainAspectRatio: false, cutout: '65%',
-        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ctx.label + ': ' + ctx.parsed + '%' } } }
-      }
+      options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { display: false } } }
     });
   });
 }
@@ -249,34 +231,26 @@ function renderDonuts() {
 function renderChartLitros() {
   if (chartL) chartL.destroy();
   const robots = window._robots || [];
-  const lista = filtro === 'todos' ? robots : robots.filter(r => String(r.MilkingDevice) === filtro);
+  const lista = filtro === 'todos' ? robots : robots.filter(r => String(r.milking_device) === filtro);
 
   const datasets = lista.map((r, i) => {
-    const evol = evolucion[String(r.MilkingDevice)] || { fechas: [], litros: [] };
-    return {
-      label: r.NombreRobot,
-      data: evol.litros,
-      labels: evol.fechas,
-      borderColor: COLORES[i],
-      backgroundColor: 'transparent',
-      borderWidth: 2,
-      pointRadius: 2,
-      tension: 0.3
-    };
+    const key = String(r.milking_device);
+    const evol = evolucion[key] || { fechas: [], litros: [] };
+    return { label: r.nombre_robot, data: evol.litros, borderColor: COLORES[i], backgroundColor: 'transparent', borderWidth: 2, pointRadius: 2, tension: 0.3 };
   });
 
-  const fechas = lista.length > 0 ? (evolucion[String(lista[0].MilkingDevice)] || {}).fechas || [] : [];
-  const labels = fechas.map(f => { const [y,m,d] = f.split('-'); return `${d}/${m}`; });
+  const primeraKey = lista.length > 0 ? String(lista[0].milking_device) : null;
+  const fechas = primeraKey && evolucion[primeraKey] ? evolucion[primeraKey].fechas.map(f => { const [y,m,d] = f.split('-'); return `${d}/${m}`; }) : [];
 
   chartL = new Chart(document.getElementById('chartLitros'), {
     type: 'line',
-    data: { labels, datasets },
+    data: { labels: fechas, datasets },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: lista.length > 1, position: 'top', labels: { font: { size: 11 }, boxWidth: 10, padding: 8 } } },
+      plugins: { legend: { display: lista.length > 1, position: 'top' } },
       scales: {
-        x: { grid: { display: false }, ticks: { font: { size: 10 }, color: '#888', maxTicksLimit: 10, maxRotation: 0 } },
-        y: { ticks: { font: { size: 11 }, color: '#888', callback: v => v.toLocaleString('es-ES') }, grid: { color: 'rgba(0,0,0,0.05)' } }
+        x: { grid: { display: false }, ticks: { font: { size: 10 }, maxTicksLimit: 10, maxRotation: 0 } },
+        y: { ticks: { callback: v => v.toLocaleString('es-ES') }, grid: { color: 'rgba(0,0,0,0.05)' } }
       }
     }
   });
@@ -290,6 +264,21 @@ function cambiarFiltro(k) {
   renderDonuts();
   renderChartLitros();
 }
+
+// Selector de granjas
+fetch(`${API}/granjas`).then(r => r.json()).then(granjas => {
+  const sel = document.createElement('select');
+  sel.style.cssText = 'margin-left:12px;padding:4px 8px;border-radius:6px;border:1px solid #ccc;font-size:14px;cursor:pointer';
+  granjas.forEach(g => {
+    const opt = document.createElement('option');
+    opt.value = g.farm_id;
+    opt.textContent = g.name;
+    sel.appendChild(opt);
+  });
+  sel.addEventListener('change', e => cargarRobots(e.target.value));
+  document.getElementById('periodo').before(sel);
+  cargarRobots(granjas[0].farm_id);
+});
 </script>
 </body>
 </html>
