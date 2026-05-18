@@ -239,7 +239,7 @@ function renderChartLitros() {
     return { label: r.nombre_robot, data: evol.litros, borderColor: COLORES[i], backgroundColor: 'transparent', borderWidth: 2, pointRadius: 2, tension: 0.3 };
   });
 
-  const primeraKey = lista.length > 0 ? String(lista[0].milking_device) : null;
+  const primeraKey = lista.length > 0 ? (lista[0].milking_device !== null ? String(lista[0].milking_device) : '0') : null;
   const fechas = primeraKey && evolucion[primeraKey] ? evolucion[primeraKey].fechas.map(f => { const [y,m,d] = f.split('-'); return `${d}/${m}`; }) : [];
 
   chartL = new Chart(document.getElementById('chartLitros'), {
