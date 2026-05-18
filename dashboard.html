@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Granja</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f5f5f5; color: #222; padding: 1.5rem; }
+    h1 { font-size: 1.4rem; font-weight: 500; margin-bottom: 1.5rem; }
+    .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 1.5rem; }
+    .kpi { background: white; border-radius: 10px; padding: 1rem; border: 1px solid #eee; }
+    .kpi-label { font-size: 12px; color: #888; margin-bottom: 4px; }
+    .kpi-value { font-size: 24px; font-weight: 500; }
+    .kpi-sub { font-size: 11px; color: #aaa; margin-top: 2px; }
+    .card { background: white; border-radius: 10px; padding: 1.2rem; border: 1px solid #eee; margin-bottom: 1rem; }
+    .card-title { font-size: 13px; font-weight: 500; margin-bottom: 4px; }
+    .card-sub { font-size: 11px; color: #888; margin-bottom: 12px; }
+    .chart-wrap { position: relative; width: 100%; height: 250px; }
+    .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; }
+  </style>
+</head>
+<body>
+
+<h1 id="titulo">Cargando...</h1>
+
+<div class="kpis" id="kpis"></div>
+
+<div class="card">
+  <div class="card-title">Producción mensual</div>
+  <div class="card-sub">kg/vaca/día</div>
+  <div class="chart-wrap"><canvas id="cMensual" role="img" aria-label="Producción mensual"></canvas></div>
+</div>
+
+<div class="grid2">
+  <div class="card">
+    <div class="card-title">Producción anual</div>
+    <div class="card-sub">kg/vaca/día</div>
+    <div class="chart-wrap"><canvas id="cAnual" role="img" aria-label="Producción anual"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Ordeños por día</div>
+    <div class="card-sub">Media anual</div>
+    <div class="chart-wrap"><canvas id="cOrdenos" role="img" aria-label="Ordeños por día"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Rechazos por día</div>
+    <div class="card-sub">Media anual</div>
+    <div class="chart-wrap"><canvas id="cRechazos" role="img" aria-label="Rechazos por día"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Duración ordeño</div>
+    <div class="card-sub">Minutos por ordeño</div>
+    <div class="chart-wrap" style="display:none"><canvas id="cDuracion" role="img" aria-label="Duración ordeño"></canvas></div>
+  </div>
+</div>
+
+<script>
+const API = 'https://milking-intelligence-production.up.railway.app';
+const farm_id = 'vistahermosa';
+
+Promise.all([
+  fetch(`${API}/kpis/${farm_id}`).then(r => r.json()),
+  fetch(`${API}/produccion/${farm_id}`).then(r => r.json())
+]).then(([kpis, produccion]) => {
+  document.getElementById('titulo').textContent = 'Granja ' + kpis.name;
+  const k = kpis;
+  document.getElementById('kpis').innerHTML = `
+    <div class="kpi"><div class="kpi-label">Producción media</div><div class="kpi-value">${k.produccion_media} kg</div><div class="kpi-sub">vaca/día</div></div>
+    <div class="kpi"><div class="kpi-label">Ordeños/día</div><div class="kpi-value">${k.ordenos_dia}</div><div class="kpi-sub">media período</div></div>
+    <div class="kpi"><div class="kpi-label">Rechazos/día</div><div class="kpi-value">${k.rechazos_dia}</div><div class="kpi-sub">muy bajo</div></div>
+    <div class="kpi"><div class="kpi-label">Incompletos/día</div><div class="kpi-value">${k.incompletos_dia}</div><div class="kpi-sub">media período</div></div>
+  `;
+
+  const meses = produccion.mensual.map(r => r.periodo);
+  const valMeses = produccion.mensual.map(r => r.produccion);
+  new Chart(document.getElementById('cMensual'), {
+    type: 'line',
+    data: { labels: meses, datasets: [{ data: valMeses, borderColor: '#1D9E75', backgroundColor: 'rgba(29,158,117,0.08)', borderWidth: 2, pointRadius: 0, tension: 0.3, fill: true }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { maxTicksLimit: 12, maxRotation: 0 } } } }
+  });
+
+  const years = produccion.anual.map(r => r.year);
+  const mkBar = (id, data, color) => new Chart(document.getElementById(id), {
+    type: 'bar',
+    data: { labels: years, datasets: [{ data, backgroundColor: color, borderRadius: 4, borderSkipped: false }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+  });
+  mkBar('cAnual', produccion.anual.map(r => r.produccion), '#1D9E75');
+  mkBar('cOrdenos', produccion.anual.map(r => r.ordenos), '#378ADD');
+  mkBar('cRechazos', produccion.anual.map(r => r.rechazos), '#EF9F27');
+});
+</script>
+</body>
+</html>
